@@ -21,7 +21,7 @@ func New(capacity int) *SizeLimitedQueue {
 func (s *SizeLimitedQueue) Push(i int) {
 	// Acquire lock before entering the critical section
 	s.cond.L.Lock()
-	for len(s.queue) == s.capacity { // this line is a critical section (read s.queue)
+	for len(s.queue) == s.capacity {
 		// Wait for a signal sent by Broadcast()
 		// When receives a signal, it goes to the head of the loop
 		// then checks the condition again

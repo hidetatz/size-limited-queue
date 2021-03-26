@@ -21,7 +21,7 @@ func NewMutexQueue(capacity int) *MutexQueue {
 func (s *MutexQueue) Push(i int) {
 	// acquire lock first to read len(s.queue) atomically
 	s.mu.Lock()
-	for len(s.queue) == s.capacity { // this line is a critical section (read s.queue)
+	for len(s.queue) == s.capacity {
 
 		// This unlock is necessary to prevent deadlock.
 		// One possible deadlock scenario (which can heppen when these Unlock/Lock doesn't exist in the loop):
