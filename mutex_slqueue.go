@@ -19,7 +19,7 @@ func NewMutexQueue(capacity int) *MutexQueue {
 }
 
 func (s *MutexQueue) Push(i int) {
-	// acquire lock first to read len(s.queue) atomically
+	// acquire lock first to read len(s.queue) and write to the queue atomically
 	s.mu.Lock()
 	for len(s.queue) == s.capacity {
 
