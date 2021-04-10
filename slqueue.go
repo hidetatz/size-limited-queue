@@ -5,49 +5,72 @@ import (
 )
 
 type SizeLimitedQueue struct {
-	cond     *sync.Cond
-	capacity int
-	queue    []int
+	// nonFullCond is a cond var to notify that the queue length changed to
+	// non-full from full.
+	// This is intended to be used in waiting the queue length change in Push()
+	nonFullCond *sync.Cond
+
+	// nonEmptyCond is a cond var to notify that the queue length changed to
+	// non-empty from empty.
+	// This is intended to be used in waiting the queue length change in Pop()
+	nonEmptyCond *sync.Cond
+	capacity     int
+	queue        []int
+	mu           *sync.Mutex
 }
 
 func New(capacity int) *SizeLimitedQueue {
+	mu := &sync.Mutex{}
 	return &SizeLimitedQueue{
-		cond:     sync.NewCond(&sync.Mutex{}),
-		capacity: capacity,
-		queue:    []int{},
+		nonFullCond:  sync.NewCond(mu),
+		nonEmptyCond: sync.NewCond(mu),
+		capacity:     capacity,
+		queue:        []int{},
+		mu:           mu,
 	}
 }
 
 func (s *SizeLimitedQueue) Push(i int) {
-	// Acquire lock before entering the critical section
-	s.cond.L.Lock()
+	s.nonFullCond.L.Lock()
 	for len(s.queue) == s.capacity {
-		// Wait for a signal sent by Broadcast()
-		// When receives a signal, it goes to the head of the loop
-		// then checks the condition again
-		s.cond.Wait()
+		// wait for the cond var gets notified when the queue becomes non-full
+		// because Push() can push an element only when the queue is non-full
+		// This is notified when the queue gets non-full (= an existing element is popped in Pop())
+		s.nonFullCond.Wait()
 	}
 
+	wasEmpty := len(s.queue) == 0
 	s.queue = append(s.queue, i)
 
-	// Because condition (= length of s.queue) is changed,
-	// it sends a signal to all the goroutines
-	// Because they wait for the signal, it doesn't enter busy-loop,
-	// so it is more efficient.
-	s.cond.Broadcast()
-	s.cond.L.Unlock()
+	// if the queue was empty but now non-empty,
+	// it should be notified to the goroutines which are waiting for Pop()
+	// because they can start running only when the queue is non-empty
+	if wasEmpty {
+		s.nonEmptyCond.Signal()
+	}
+	s.nonFullCond.L.Unlock()
 }
 
 func (s *SizeLimitedQueue) Pop() int {
-	s.cond.L.Lock()
+	s.nonEmptyCond.L.Lock()
 	for len(s.queue) == 0 {
-		s.cond.Wait()
+		// wait for the cond var gets notified when the queue becomes non-empty
+		// because Pop() can pop an element only when the queue is non-empty
+		// This is notified when the queue gets non-empty (= a new element is pushed in Push())
+		s.nonEmptyCond.Wait()
 	}
 
+	wasFull := len(s.queue) == s.capacity
 	ret := s.queue[0]
 	s.queue = s.queue[1:]
-	s.cond.Broadcast()
-	s.cond.L.Unlock()
+
+	if wasFull {
+		// if the queue was full but now non-full,
+		// it should be notified to the goroutines which are waiting for Push()
+		// because they can start running only when the queue is non-full
+		s.nonFullCond.Signal()
+	}
+	s.nonEmptyCond.L.Unlock()
 
 	return ret
 }
