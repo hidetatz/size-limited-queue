@@ -17,6 +17,6 @@ fi
 # make sure race condition is NOT detected
 output=$(go test -run Test_SizeLimitedQueue_Push_Pop -race ./...)
 if grep -q "WARNING: DATA RACE" <<< $output; then
-    echo race condition is detected in MutexQueue test
+    echo race condition is detected in SizeLimitedQueue test
     exit 1
 fi
