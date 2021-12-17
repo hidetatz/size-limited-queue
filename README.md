@@ -2,7 +2,7 @@
 
 This repo is not a library. It is a reference implementation of "hint" for the programmers who are trying to understand how sync.Cond works, how it is used in the real world.
 
-I'll leave a brief explanation in this README, but I would strongly recommend you to read **[my full article](https://dtyler.io/articles/2021/04/13/sync_cond/) to get better understanding** instead of just looking at this repository.
+I'll leave a brief explanation in this README, but I would strongly recommend you to read **[my full article](https://hidetatz.io/articles/2021/04/13/sync_cond/) to get better understanding** instead of just looking at this repository.
 
 This repository contains a working code which implements a size-limited-queue. First, let me describe the spec of it:
 
@@ -14,15 +14,15 @@ This repository contains a working code which implements a size-limited-queue. F
 
 There are three implementations described below:
 
-* [single_thread_slqueue.go](https://github.com/dty1er/size-limited-queue/blob/main/single_thread_slqueue.go)
-* [mutex_slqueue.go](https://github.com/dty1er/size-limited-queue/blob/main/mutex_slqueue.go)
-* [slqueue.go](https://github.com/dty1er/size-limited-queue/blob/main/slqueue.go)
+* [single_thread_slqueue.go](https://github.com/hidetatz/size-limited-queue/blob/main/single_thread_slqueue.go)
+* [mutex_slqueue.go](https://github.com/hidetatz/size-limited-queue/blob/main/mutex_slqueue.go)
+* [slqueue.go](https://github.com/hidetatz/size-limited-queue/blob/main/slqueue.go)
 
-`slqueue.go` has simpler implementation at the old revision. [176eb78](https://github.com/dty1er/size-limited-queue/blob/176eb788c5be9f7c9fb98b57f39d9953a56204c1/slqueue.go)
+`slqueue.go` has simpler implementation at the old revision. [176eb78](https://github.com/hidetatz/size-limited-queue/blob/176eb788c5be9f7c9fb98b57f39d9953a56204c1/slqueue.go)
 
 ### single_thread_slqueue.go
 
-[single_thread_slqueue.go](https://github.com/dty1er/size-limited-queue/blob/main/single_thread_slqueue.go)
+[single_thread_slqueue.go](https://github.com/hidetatz/size-limited-queue/blob/main/single_thread_slqueue.go)
 
 It works basically, but doesn't work correctly under multithread environment. The length check in `Push` / `Pop` and queue manipulation (`append` / moving the queue head to pop) must be atomic, but this implementation does not consider it. As a result, 
 
@@ -37,7 +37,7 @@ I implemented single_thread_slqueue.go to compare it with upcoming `mutex_slqueu
 
 ### mutex_slqueue.go
 
-[mutex_slqueue.go](https://github.com/dty1er/size-limited-queue/blob/main/mutex_slqueue.go)
+[mutex_slqueue.go](https://github.com/hidetatz/size-limited-queue/blob/main/mutex_slqueue.go)
 
 This uses `sync.Mutex` to make the queue length check and queue manipulation atomic.
 This actually works following all the spec, but the problem is its inefficiency.
@@ -60,7 +60,7 @@ See `1` in the code. Because of the spec `When trying to push an element to the 
 
 ### slqueue.go - simple
 
-[slqueue.go](https://github.com/dty1er/size-limited-queue/blob/176eb788c5be9f7c9fb98b57f39d9953a56204c1/slqueue.go)
+[slqueue.go](https://github.com/hidetatz/size-limited-queue/blob/176eb788c5be9f7c9fb98b57f39d9953a56204c1/slqueue.go)
 
 This uses `sync.Cond` to make mutex implementation better. See the implementation:
 
@@ -98,9 +98,9 @@ This has an advantage because it does not require spins.
 
 ### slqueue.go - improved
 
-[slqueue.go](https://github.com/dty1er/size-limited-queue/blob/main/slqueue.go)
+[slqueue.go](https://github.com/hidetatz/size-limited-queue/blob/main/slqueue.go)
 
-On the above `slqueue.go`, some optimizations are applied. They are described more specifically on my [article](https://dtyler.io/articles/2021/04/13/sync_cond/).
+On the above `slqueue.go`, some optimizations are applied. They are described more specifically on my [article](https://hidetatz.io/articles/2021/04/13/sync_cond/).
 
 ## For readers
 
@@ -108,6 +108,6 @@ I'm quite sure this README is not enough to understand `sync.Cond`. This is just
 
 To understand `sync.Cond` better, I'd say you have to understand a synchronization primitive "Condition Variable" in POSIX. `sync.Cond` is actually just a Go version of it.
 
-I described what "Condition Variable" is, and the detailed description of above code, also some supplementary information about it in my [article](https://dtyler.io/articles/2021/04/13/sync_cond/). I would recommend reading it with the actual source code in this repository.
+I described what "Condition Variable" is, and the detailed description of above code, also some supplementary information about it in my [article](https://hidetatz.io/articles/2021/04/13/sync_cond/). I would recommend reading it with the actual source code in this repository.
 
 If you find this repo helpful to learn `sync.Cond`, please leave a star!
